@@ -74,7 +74,6 @@ io.on("connection", (socket) => {
     const username = socketToEmailMapping.get(socket.id);
     console.log(`User disconnected: ${socket.id} (${username})`);
     
-    // Clean up mappings
     if (username) emailToSocketMapping.delete(username);
     socketToEmailMapping.delete(socket.id);
   });
