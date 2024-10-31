@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSocket } from "../context/SocketContext";
+
 import { useNavigate } from "react-router-dom";
+import { usePeer } from "../context/PeerContext";
 
 export default function Homepage() {
   const navigate = useNavigate();
@@ -9,7 +11,8 @@ export default function Homepage() {
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [isConnected, setIsConnected] = useState(false);
-
+  const { createOffer } = usePeer();
+  
   useEffect(() => {
     const handleConnect = () => {
       console.log("Socket connected successfully");
@@ -32,7 +35,6 @@ export default function Homepage() {
     socket.on("disconnect", handleDisconnect);
     socket.on("error", handleError);
 
-    // Cleanup socket listeners on unmount
     return () => {
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
@@ -40,15 +42,22 @@ export default function Homepage() {
     };
   }, [socket]);
 
-  const handleJoinedRoom = useCallback((data) => {
+  const handleJoinedRoom = useCallback(async (data) => {
     console.log("Room joined:", data);
     navigate(`/room/${data.roomCode}`);
-  }, [navigate]);
+
+    const offer = await createOffer();
+    console.log("Created offer:", offer);
+
+    socket.emit("call-user", {
+      offer,
+      to: data.username, // Send offer to server with room info
+    });
+  }, [navigate, createOffer, socket]);
 
   useEffect(() => {
     socket.on("joined_room", handleJoinedRoom);
 
-    // Cleanup event listener when component unmounts
     return () => {
       socket.off("joined_room", handleJoinedRoom);
     };

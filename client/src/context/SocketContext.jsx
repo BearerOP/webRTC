@@ -1,5 +1,5 @@
-import { createContext, useContext, useMemo, useEffect } from 'react';
-import { io } from 'socket.io-client';
+import { createContext, useContext, useMemo, useEffect } from "react";
+import { io } from "socket.io-client";
 
 const SocketContext = createContext(null);
 
@@ -14,8 +14,10 @@ export const useSocket = () => {
 export const SocketProvider = ({ children }) => {
   const socket = useMemo(() => {
     const socketInstance = io("http://localhost:8080", {
-      transports: ["websocket"], // Optional: Force WebSocket transport if needed
-    });
+      transports: ["websocket", "polling"], // Adding fallback to polling
+      reconnectionAttempts: 5,               // Retry up to 5 times
+  });
+  
 
     // Log connection status
     socketInstance.on("connect", () => {
@@ -26,7 +28,7 @@ export const SocketProvider = ({ children }) => {
       console.error("Connection error:", err);
     });
 
-    return socketInstance; // Return the socket instance itself
+    return socketInstance;
   }, []);
 
   // Cleanup on unmount

@@ -1,36 +1,44 @@
-import { createContext, useContext, useState,useMemo } from "react";
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import Peer from 'peerjs';
 
-const PeerContext = createContext(null);
+const PeerContext = createContext();
 
 export const usePeer = () => {
-    return useContext(PeerContext);
-};
-
-
-export const createOffer = async (peer) => {
-    const offer = await peer.createOffer();
-    await peer.setLocalDescription(offer);
-    return offer;
+  return useContext(PeerContext);
 };
 
 export const PeerProvider = ({ children }) => {
+  const [peer, setPeer] = useState(null);
 
+  useEffect(() => {
+    const peerInstance = new Peer(); // Initialize PeerJS instance
+    setPeer(peerInstance);
 
-    const peer = useMemo(() => new RTCPeerConnection({
-        iceServers: [
-            {
-                urls: ["stun:stun.l.google.com:19302"],
-            },
-        ],
-    }),[]);
+    return () => {
+      peerInstance.destroy(); // Clean up on unmount
+    };
+  }, []);
 
+  const createOffer = async () => {
+    return new Promise((resolve, reject) => {
+      peer.on('open', () => {
+        const offer = peer.createOffer();
+        resolve(offer);
+      });
+    });
+  };
 
-    return (
-        <PeerContext.Provider value={{ peer }}>
-            {children}
-        </PeerContext.Provider>
-    );
+  const handleRemoteAnswer = (answer) => {
+    peer.setRemoteDescription(answer);
+  };
+
+  const addStream = (stream) => {
+    peer.addStream(stream);
+  };
+
+  return (
+    <PeerContext.Provider value={{ peer, createOffer, handleRemoteAnswer, addStream }}>
+      {children}
+    </PeerContext.Provider>
+  );
 };
-
-
-export default PeerContext;
